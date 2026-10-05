@@ -1,0 +1,25 @@
+# Python-generated files and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Generated sensor recordings and maps
+*_content_*.csv
+data/
+maps/
+*.bag
+*.db3
+*.mcap
+
+# Local settings and credentials
+.env
+.env.*
+!.env.example
+keys.txt
+AGENTS.md
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
