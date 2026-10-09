@@ -54,7 +54,7 @@ class motion_executioner(Node):
         
         # TODO Part 3: Create the QoS profile by setting the proper parameters in (...)
         # The Burger simulation topics publishers are set to RELIABLE, VOLATILE, and UNKNOWN respectively. Instead of UNKNOWN I changed suscriber TO KEEP_LAST policy with depth of 10 msgs.
-        qos=QoSProfile(reliability=QoSReliabilityPolicy.RELIABLE, durability=QoSDurabilityPolicy.VOLATILE, history=QoSHistoryPolicy.KEEP_LAST, depth=10)
+        qos=QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT, durability=QoSDurabilityPolicy.VOLATILE, history=QoSHistoryPolicy.KEEP_LAST, depth=10)
 
         # TODO Part 5: Create below the subscription to the topics corresponding to the respective sensors
         self.imu_subscription=self.create_subscription(Imu, '/imu', self.imu_callback, qos) # (message type, topic name, callback function, qos)

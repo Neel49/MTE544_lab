@@ -6,7 +6,6 @@ venv/
 .pytest_cache/
 
 # Generated sensor recordings and maps
-*_content_*.csv
 data/
 maps/
 *.bag
