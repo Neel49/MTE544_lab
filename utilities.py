@@ -23,7 +23,7 @@ class Logger:
 
         with open(self.filename, 'a', newline='') as file:
 
-            # TODO Part 5: Write the values from the list to the file
+            # Write the values from the list to the file
             csv_writer = csv.writer(file)
             csv_writer.writerow(values_list) # Added this so that the ranges array from alser scan can be written to the file as one row
 
@@ -75,7 +75,7 @@ class FileReader:
         return headers, table
 
 
-# TODO Part 5: Implement the conversion from Quaternion to Euler Angles
+# Implement the conversion from Quaternion to Euler Angles
 def euler_from_quaternion(quat):
     """
     Convert quaternion (w in last place) to euler roll, pitch, yaw.
