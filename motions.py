@@ -6,19 +6,15 @@ from rclpy.node import Node
 from utilities import Logger, euler_from_quaternion
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy, QoSHistoryPolicy
 
-# TODO Part 3: Import message types needed: 
+# Import message types needed: 
     # For sending velocity commands to the robot: Twist
     # For the sensors: Imu, LaserScan, and Odometry
-# Check the online documentation to fill in the lines below
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Imu
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 
 from rclpy.time import Time
-
-# You may add any other imports you may need/want to use below
-# import ...
 
 
 CIRCLE=0; SPIRAL=1; ACC_LINE=2
@@ -44,7 +40,7 @@ class motion_executioner(Node):
         self.odom_initialized=False
         self.laser_initialized=False
         
-        # TODO Part 3: Create a publisher to send velocity commands by setting the proper parameters in (...)
+        # Create a publisher to send velocity commands by setting the proper parameters in (...)
         self.vel_publisher=self.create_publisher(Twist, 'cmd_vel', 10) # (message type, topic name, queue size)
                 
         # loggers
@@ -52,11 +48,11 @@ class motion_executioner(Node):
         self.odom_logger=Logger('odom_content_'+str(motion_types[motion_type])+'.csv', headers=["x","y","th", "stamp"])
         self.laser_logger=Logger('laser_content_'+str(motion_types[motion_type])+'.csv', headers=["ranges", "angle_increment", "stamp"])
         
-        # TODO Part 3: Create the QoS profile by setting the proper parameters in (...)
-        # The Burger simulation topics publishers are set to RELIABLE, VOLATILE, and UNKNOWN respectively. Instead of UNKNOWN I changed suscriber TO KEEP_LAST policy with depth of 10 msgs.
+        # Create the QoS profile by setting the proper parameters in (...)
+        # The Burger simulation topics publishers are set to BEST_EFFORT, VOLATILE, and UNKNOWN respectively. Instead of UNKNOWN I changed suscriber TO KEEP_LAST policy with depth of 10 msgs.
         qos=QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT, durability=QoSDurabilityPolicy.VOLATILE, history=QoSHistoryPolicy.KEEP_LAST, depth=10)
 
-        # TODO Part 5: Create below the subscription to the topics corresponding to the respective sensors
+        # Create below the subscription to the topics corresponding to the respective sensors
         self.imu_subscription=self.create_subscription(Imu, '/imu', self.imu_callback, qos) # (message type, topic name, callback function, qos)
         self.odom_subscription=self.create_subscription(Odometry, '/odom', self.odom_callback, qos) # (message type, topic name, callback function, qos)
         self.laser_subscription=self.create_subscription(LaserScan, '/scan', self.laser_callback, qos) # (message type, topic name, callback function, qos)
@@ -64,7 +60,7 @@ class motion_executioner(Node):
         self.create_timer(0.1, self.timer_callback)
 
 
-    # TODO Part 5: Callback functions: complete the callback functions of the three sensors to log the proper data.
+    # Callback functions: complete the callback functions of the three sensors to log the proper data.
     # To also log the time you need to use the rclpy Time class, each ros msg will come with a header, and then
     # inside the header you have a stamp that has the time in seconds and nanoseconds, you should log it in nanoseconds as 
     # such: Time.from_msg(imu_msg.header.stamp).nanoseconds
@@ -125,7 +121,7 @@ class motion_executioner(Node):
         self.vel_publisher.publish(cmd_vel_msg)
         
     
-    # TODO Part 4: Motion functions: complete the functions to generate the proper messages corresponding to the desired motions of the robot
+    # Motion functions: complete the functions to generate the proper messages corresponding to the desired motions of the robot
 
     def make_circular_twist(self):
         """Command a continuous circle using constant v and omega = v / R."""
