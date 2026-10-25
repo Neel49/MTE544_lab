@@ -100,28 +100,28 @@ def euler_from_quaternion(quat):
     return (roll, pitch, yaw)
 
 
-#TODO Part 4: Implement the calculation of the linear error
+# Calculation of the linear error
 def calculate_linear_error(current_pose, goal_pose):
         
     # Compute the linear error in x and y
     # Remember that current_pose = [x,y, theta, time stamp] and goal_pose = [x,y]
     # Remember to use the Euclidean distance to calculate the error.
-    error_linear= ...
+    error_linear= sqrt((current_pose[0]-goal_pose[0])**2 + (current_pose[1]-goal_pose[1])**2)
 
     return error_linear
 
-#TODO Part 4: Implement the calculation of the angular error
+# Calculation of the angular error
 def calculate_angular_error(current_pose, goal_pose):
 
     # Compute the linear error in x and y
-    # Remember that current_pose = [x,y, theta, time stamp] and goal_pose = [x,y]
+    # Current_pose = [x,y, theta, time stamp] and goal_pose = [x,y]
     # Use atan2 to find the desired orientation
-    # Remember that this function returns the difference in orientation between where the robot currently faces and where it should face to reach the goal
+    # This function returns the difference in orientation between where the robot currently faces and where it should face to reach the goal
+    desired_heading = atan2((goal_pose[1]-current_pose[1]),(goal_pose[0]-current_pose[0]))
+    error_angular = desired_heading - current_pose[2]
 
-    error_angular = ...
-
-    # Remember to handle the cases where the angular error might exceed the range [-π, π]
-
-    ...
-    
-    return error_angular
+    # Steps to handle the cases where the angular error might exceed the range [-π, π]
+    # 1. Shift from [-π, π] to [0, 2π] range
+    # 2. Calculate angle error from 2π
+    # 3. Shift angle error back to [-π, π] from [0, 2π] range
+    return (error_angular + M_PI) % (2.0 * M_PI) - M_PI

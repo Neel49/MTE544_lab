@@ -1,3 +1,5 @@
+from email import message
+import numpy as np
 # Type of planner
 POINT_PLANNER=0; TRAJECTORY_PLANNER=1
 
@@ -23,9 +25,18 @@ class planner:
         y = goalPoint[1]
         return x, y
 
-    # TODO Part 6: Implement the trajectories here
+    # Trajectories implemented here
     def trajectory_planner(self):
-        pass
-        # the return should be a list of trajectory points: [ [x1,y1], ..., [xn,yn]]
-        # return 
+        trajectory = "sigmoid"
 
+        if trajectory == "parabola":
+            x = np.linspace(0.0, 1.5, 61)
+            y = x ** 2
+         
+        elif trajectory == "sigmoid":
+            x = np.linspace(0.0, 2.5, 101)
+            y = 2.0 / (1+np.exp(-2.0*x)) - 1.0
+        else:
+            raise ValueError(f"Trajectory expected parabola or sigmoid, but recieved {trajectory}.")
+        # the return should be a list of trajectory points: [ [x1,y1], ..., [xn,yn]]
+        return [[xi,yi] for xi, yi in zip(x,y)]
