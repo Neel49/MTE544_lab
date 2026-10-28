@@ -31,8 +31,8 @@ class controller:
         angular_vel=self.PID_angular.update([e_ang, pose[3]], status)
 
         # Saturation Limits
-        linear_vel = MAX_LINEAR_SPEED if linear_vel > MAX_LINEAR_SPEED else linear_vel
-        angular_vel= MAX_ANGULAR_SPEED if angular_vel > MAX_ANGULAR_SPEED else angular_vel
+        linear_vel = max(-MAX_LINEAR_SPEED, min(linear_vel, MAX_LINEAR_SPEED))
+        angular_vel = max(-MAX_ANGULAR_SPEED, min(angular_vel, MAX_ANGULAR_SPEED))
         
         return linear_vel, angular_vel
     
@@ -57,8 +57,8 @@ class trajectoryController(controller):
         angular_vel=self.PID_angular.update([e_ang, pose[3]], status) 
 
         # Saturation Limits
-        linear_vel = MAX_LINEAR_SPEED if linear_vel > MAX_LINEAR_SPEED else linear_vel
-        angular_vel= MAX_ANGULAR_SPEED if angular_vel > MAX_ANGULAR_SPEED else angular_vel
+        linear_vel = max(-MAX_LINEAR_SPEED, min(linear_vel, MAX_LINEAR_SPEED))
+        angular_vel = max(-MAX_ANGULAR_SPEED, min(angular_vel, MAX_ANGULAR_SPEED))
         
         return linear_vel, angular_vel
 
