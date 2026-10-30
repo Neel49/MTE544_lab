@@ -27,14 +27,14 @@ class planner:
 
     # Trajectories implemented here
     def trajectory_planner(self):
-        trajectory = "sigmoid"
+        trajectory = "parabola"
 
         if trajectory == "parabola":
-            x = np.linspace(0.0, 1.5, 61)
+            x = np.linspace(0.0, 1.5, 5)
             y = x ** 2
          
         elif trajectory == "sigmoid":
-            x = np.linspace(0.0, 2.5, 101)
+            x = np.linspace(0.0, 2.5, 20)
             y = 2.0 / (1+np.exp(-2.0*x)) - 1.0
         else:
             raise ValueError(f"Trajectory expected parabola or sigmoid, but recieved {trajectory}.")

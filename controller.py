@@ -17,8 +17,8 @@ class controller:
     # Default gains of the controller for linear and angular motions
     def __init__(self, klp=0.2, klv=0.2, kli=0.2, kap=0.2, kav=0.2, kai=0.2):
         # Use same controller for both linear and angular motions (PID For Now)
-        self.PID_linear=PID_ctrl(PID, klp, klv, kli, filename_="linear.csv")
-        self.PID_angular=PID_ctrl(PID, kap, kav, kai, filename_="angular.csv")
+        self.PID_linear=PID_ctrl(P, klp, klv, kli, filename_="linear.csv")
+        self.PID_angular=PID_ctrl(P, kap, kav, kai, filename_="angular.csv")
 
     
     def vel_request(self, pose, goal, status):
