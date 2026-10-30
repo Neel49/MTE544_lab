@@ -11,10 +11,10 @@ def read_data(filename):
     # Read every measurement, including the first row after the header.
     with open(filename, newline="") as file:
         reader = csv.reader(file)
-        headers = [value.strip() for value in next(reader) if value.strip()]
+        headers = [value.strip() for value in next(reader, []) if value.strip()]
         rows = []
         for row in reader:
-            if not row:
+            if not any(value.strip() for value in row):
                 continue
             # Keep nanosecond timestamps as integers until we subtract the start.
             rows.append([float(row[0]), float(row[1]), float(row[2]), int(row[3])])
@@ -102,6 +102,9 @@ if __name__ == "__main__":
     for name in args.files:
         filename = Path(name).resolve()
         headers, rows = read_data(filename)
+        if not rows:
+            print(f"Skipping {filename}: no recorded measurements in this file.")
+            continue
         datasets.append((filename, headers, rows))
         folder = filename.parent
         # Files from the same trial share a time origin when plotted together.
