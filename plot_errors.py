@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 from utilities import FileReader
 
 
@@ -21,6 +22,12 @@ def plot_errors(filename):
 
 
     axes[0].plot([lin[0] for lin in values], [lin[1] for lin in values])
+    if headers[0].strip() == "x":
+        # Overlay the parabola from planner.py on the recorded robot path.
+        x = np.linspace(0.0, 1.5, 61)
+        axes[0].lines[0].set_label("Recorded path")
+        axes[0].plot(x, x ** 2, color="orange", linestyle="--", label="Planned parabola")
+        axes[0].legend()
     axes[0].set_title("state space")
     axes[0].grid()
 
