@@ -5,6 +5,7 @@ import csv
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def read_data(filename):
@@ -47,6 +48,11 @@ def plot_errors(filename, headers, rows, start_stamp):
         fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
         axes[0].plot(x, y, color="blue", label="Path")
+        # Compare the recorded path with the default sigmoid from planner.py.
+        sigmoid_x = np.linspace(0.0, 2.5, 101)
+        sigmoid_y = 2.0 / (1 + np.exp(-2.0 * sigmoid_x)) - 1.0
+        axes[0].plot(sigmoid_x, sigmoid_y, color="orange", linestyle="--",
+                     label="Planned sigmoid")
         axes[0].scatter(x[0], y[0], color="green", label="Start")
         axes[0].scatter(x[-1], y[-1], color="red", marker="x", label="End")
         axes[0].set(title="Robot trajectory", xlabel="x (m)", ylabel="y (m)")
