@@ -33,7 +33,7 @@ class decision_maker(Node):
         publishing_period=1/rate
     
         if motion_type == POINT_PLANNER:
-            self.controller=controller(klp=0.2, klv=0.5, kap=0.8, kav=0.6)
+            self.controller=controller(klp=0.6, klv=0.5, kap=0.75, kav=0.1, kli= 0.2, kai=0.2)
             self.planner=planner(POINT_PLANNER)    
     
     
@@ -67,13 +67,13 @@ class decision_maker(Node):
         vel_msg=Twist()
         
         # Check if we reached the goal
-        # Add a tolerance of 0.5 cm to goal position because it is unlikely we will reach exactly 0 cm of error.
+        # Add a tolerance of 5 cm to goal position because it is unlikely we will reach exactly 0 cm of error.
         # Only check linear displacement because orientation at goal position doesn't matter. 
         # Angular error is used to guide robot towards goal position.
         if type(self.goal) == list:
-            reached_goal= calculate_linear_error(self.localizer.getPose(), self.goal[-1]) < 0.005
+            reached_goal= calculate_linear_error(self.localizer.getPose(), self.goal[-1]) < 0.05
         else: 
-            reached_goal= calculate_linear_error(self.localizer.getPose(), self.goal) < 0.005
+            reached_goal= calculate_linear_error(self.localizer.getPose(), self.goal) < 0.05
         
 
         if reached_goal:

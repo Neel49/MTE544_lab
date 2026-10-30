@@ -9,8 +9,8 @@ M_PI=3.1415926535
 P=0; PD=1; PI=2; PID=3
 
 # Max Robot Speeds
-MAX_LINEAR_SPEED = 0.22 # m/s
-MAX_ANGULAR_SPEED = 2.84 # rad/s
+MAX_LINEAR_SPEED = 0.31 # m/s
+MAX_ANGULAR_SPEED = 1.9 # rad/s
 class controller:
     
     
