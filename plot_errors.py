@@ -5,7 +5,7 @@ from utilities import FileReader
 
 
 
-def plot_errors(filename):
+def plot_errors(filename, overlay=None):
     
     headers, values=FileReader(filename).read_file()
     
@@ -22,11 +22,16 @@ def plot_errors(filename):
 
 
     axes[0].plot([lin[0] for lin in values], [lin[1] for lin in values])
-    if headers[0].strip() == "x":
-        # Overlay the parabola from planner.py on the recorded robot path.
-        x = np.linspace(0.0, 1.5, 61)
+    if headers[0].strip() == "x" and overlay is not None:
+        # Use the same reference points as planner.py.
+        if overlay == "parabola":
+            x = np.linspace(0.0, 1.5, 61)
+            y = x ** 2
+        elif overlay == "sigmoid":
+            x = np.linspace(0.0, 2.5, 101)
+            y = 2.0 / (1 + np.exp(-2.0 * x)) - 1.0
         axes[0].lines[0].set_label("Recorded path")
-        axes[0].plot(x, x ** 2, color="orange", linestyle="--", label="Planned parabola")
+        axes[0].plot(x, y, color="orange", linestyle="--", label=f"Planned {overlay}")
         axes[0].legend()
     axes[0].set_title("state space")
     axes[0].grid()
@@ -53,6 +58,8 @@ if __name__=="__main__":
 
     parser = argparse.ArgumentParser(description='Process some files.')
     parser.add_argument('--files', nargs='+', required=True, help='List of files to process')
+    parser.add_argument('--overlay', choices=['parabola', 'sigmoid'],
+                        help='Optional reference curve for the robot x-y plot')
     
     args = parser.parse_args()
     
@@ -60,7 +67,7 @@ if __name__=="__main__":
 
     filenames=args.files
     for filename in filenames:
-        plot_errors(filename)
+        plot_errors(filename, args.overlay)
 
 
 
