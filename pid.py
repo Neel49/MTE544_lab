@@ -69,13 +69,13 @@ class PID_ctrl:
             # use constant dt if the messages arrived inconsistent
             # for example dt=0.1 overwriting the calculation          
             
-            # Calculate the error dot 
+            # Calculate the change in error between consecutive samples.
             error_dot+= (e1-e0)/dt
             
         error_dot/=len(self.history)
         dt_avg/=len(self.history)
         
-        # Compute the error integral
+        # Use the recent error history to calculate the integral term.
         sum_=0
         for hist in self.history:
             # Gather the integration

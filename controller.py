@@ -30,7 +30,7 @@ class controller:
         linear_vel=self.PID_linear.update([e_lin, pose[3]], status)
         angular_vel=self.PID_angular.update([e_ang, pose[3]], status)
 
-        # Saturation Limits
+        # Limit forward and turning speeds in both directions.
         linear_vel = max(-MAX_LINEAR_SPEED, min(linear_vel, MAX_LINEAR_SPEED))
         angular_vel = max(-MAX_ANGULAR_SPEED, min(angular_vel, MAX_ANGULAR_SPEED))
         
@@ -47,6 +47,7 @@ class trajectoryController(controller):
         
         goal=self.lookFarFor(pose, listGoals)
         
+        # Use distance to the final goal for speed and the look-ahead waypoint for steering.
         finalGoal=listGoals[-1]
         
         e_lin=calculate_linear_error(pose, finalGoal)
@@ -56,7 +57,7 @@ class trajectoryController(controller):
         linear_vel=self.PID_linear.update([e_lin, pose[3]], status)
         angular_vel=self.PID_angular.update([e_ang, pose[3]], status) 
 
-        # Saturation Limits
+        # Limit forward and turning speeds in both directions.
         linear_vel = max(-MAX_LINEAR_SPEED, min(linear_vel, MAX_LINEAR_SPEED))
         angular_vel = max(-MAX_ANGULAR_SPEED, min(angular_vel, MAX_ANGULAR_SPEED))
         

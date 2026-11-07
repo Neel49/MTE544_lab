@@ -25,7 +25,7 @@ class planner:
         y = goalPoint[1]
         return x, y
 
-    # Trajectories implemented here
+    # Generate five parabola waypoints or twenty sigmoid waypoints.
     def trajectory_planner(self):
         trajectory = "parabola"
 
