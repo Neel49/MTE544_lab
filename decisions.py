@@ -28,10 +28,12 @@ class decision_maker(Node):
 
         super().__init__("decision_maker")
 
+        # Create the publisher for robot velocity commands.
         self.publisher= self.create_publisher(publisher_msg, publishing_topic, qos_publisher)
 
         publishing_period=1/rate
     
+        # Gains for point control and trajectory tracking.
         if motion_type == POINT_PLANNER:
             self.controller=controller(klp=0.6, klv=0.5, kap=0.75, kav=0.1, kli= 0.2, kai=0.2)
             self.planner=planner(POINT_PLANNER)    
@@ -101,6 +103,7 @@ def main(args=None):
     init()
 
     
+    # Use reliable delivery for velocity commands.
     odom_qos=QoSProfile(reliability=1, durability=2, history=1, depth=10)
     
 

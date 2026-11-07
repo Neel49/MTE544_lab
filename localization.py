@@ -23,6 +23,7 @@ class localization(Node):
 
         super().__init__("localizer")
 
+        # Receive odometry using best-effort delivery.
         odom_qos=QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT, durability=DurabilityPolicy.VOLATILE, history=HistoryPolicy.KEEP_LAST, depth=10)
         
         self.loc_logger=Logger("robot_pose.csv", ["x", "y", "theta", "stamp"])

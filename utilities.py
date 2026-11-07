@@ -77,10 +77,7 @@ class FileReader:
 
 # Implement the conversion from Quaternion to Euler Angles
 def euler_from_quaternion(quat):
-    """
-    Convert quaternion (w in last place) to euler roll, pitch, yaw.
-    quat = [x, y, z, w]
-    """
+    """Convert a ROS quaternion to roll, pitch and yaw in radians."""
     x,y,z,w = quat.x, quat.y, quat.z, quat.w
 
     roll = atan2(
