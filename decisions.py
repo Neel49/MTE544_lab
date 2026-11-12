@@ -1,6 +1,6 @@
 import sys
 
-from utilities import euler_from_quaternion, calculate_angular_error, calculate_linear_error
+from utilities import euler_from_quaternion, calculate_angular_error, calculate_linear_error, start_trial
 from pid import PID_ctrl
 
 from rclpy import init, spin, spin_once
@@ -54,6 +54,17 @@ class decision_maker(Node):
         self.motion_type=motion_type
         self.goal=self.planner.plan() if self.motion_type != SPIRAL_4TUNE else None
         
+
+        # Archive this run before the timer starts collecting measurements.
+        motion_name = {
+            POINT_PLANNER: "point",
+            TRAJECTORY_PLANNER: "trajectory",
+            SPIRAL_4TUNE: "spiral",
+        }[self.motion_type]
+        self.trial_folder = start_trial(
+            motion_name, self.localizer.kf, self.controller,
+            self.goal, self.reachThreshold,
+        )
 
         self.create_timer(publishing_period, self.timerCallback)
 
