@@ -1,24 +1,22 @@
-import numpy as np
-
 
 from pid import PID_ctrl
+
+import numpy as np
+
 from utilities import euler_from_quaternion, calculate_angular_error, calculate_linear_error
 
 M_PI=3.1415926535
 
 P=0; PD=1; PI=2; PID=3
 
-# Max Robot Speeds
-MAX_LINEAR_SPEED = 0.31 # m/s
-MAX_ANGULAR_SPEED = 1.9 # rad/s
 class controller:
     
     
-    # Default gains of the controller for linear and angular motions
+    
     def __init__(self, klp=0.2, klv=0.2, kli=0.2, kap=0.2, kav=0.2, kai=0.2):
-        # Use P control for both linear and angular motion.
-        self.PID_linear=PID_ctrl(P, klp, klv, kli, filename_="linear.csv")
-        self.PID_angular=PID_ctrl(P, kap, kav, kai, filename_="angular.csv")
+        
+        self.PID_linear=PID_ctrl(PID, klp, klv, kli, filename_="linear.csv")
+        self.PID_angular=PID_ctrl(PID, kap, kav, kai, filename_="angular.csv")
 
     
     def vel_request(self, pose, goal, status):
@@ -26,30 +24,31 @@ class controller:
         e_lin=calculate_linear_error(pose, goal)
         e_ang=calculate_angular_error(pose, goal)
 
-
-        linear_vel=self.PID_linear.update([e_lin, pose[3]], status)
-        angular_vel=self.PID_angular.update([e_ang, pose[3]], status)
-
-        # Limit forward and turning speeds in both directions.
-        linear_vel = max(-MAX_LINEAR_SPEED, min(linear_vel, MAX_LINEAR_SPEED))
-        angular_vel = max(-MAX_ANGULAR_SPEED, min(angular_vel, MAX_ANGULAR_SPEED))
         
+        linear_vel=self.PID_linear.update([e_lin, pose[3]], status)
+        angular_vel=self.PID_angular.update([e_ang, pose[3]], status) 
+
+        linear_vel = 0.5 if linear_vel > 1.0 else linear_vel
+        angular_vel= 0.5 if angular_vel > 1.0 else angular_vel
+
+
         return linear_vel, angular_vel
     
 
 class trajectoryController(controller):
 
-    def __init__(self, klp=0.2, klv=0.2, kli=0.2, kap=0.2, kav=0.2, kai=0.2):
-        
+    def __init__(self, klp=0.2, klv=0.2, kli=0.2, kap=0.2, kav=0.2, kai=0.2, lookAhead=1.0, targetVel=1.0):
         super().__init__(klp, klv, kli, kap, kav, kai)
+        self.lookAhead=lookAhead
+        self.targetVelocity=targetVel
     
-    def vel_request(self, pose, listGoals, status):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def vel_request(self, pose, listGoals, status):
         
         goal=self.lookFarFor(pose, listGoals)
         
-        # Use distance to the final goal for speed and the look-ahead waypoint for steering.
         finalGoal=listGoals[-1]
         
+  
         e_lin=calculate_linear_error(pose, finalGoal)
         e_ang=calculate_angular_error(pose, goal)
 
@@ -57,11 +56,12 @@ class trajectoryController(controller):
         linear_vel=self.PID_linear.update([e_lin, pose[3]], status)
         angular_vel=self.PID_angular.update([e_ang, pose[3]], status) 
 
-        # Limit forward and turning speeds in both directions.
-        linear_vel = max(-MAX_LINEAR_SPEED, min(linear_vel, MAX_LINEAR_SPEED))
-        angular_vel = max(-MAX_ANGULAR_SPEED, min(angular_vel, MAX_ANGULAR_SPEED))
-        
+        linear_vel = 0.5 if linear_vel > 1.0 else linear_vel
+        angular_vel= 0.5 if angular_vel > 1.0 else angular_vel
+
+
         return linear_vel, angular_vel
+
 
     def lookFarFor(self, pose, listGoals):
         

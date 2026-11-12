@@ -1,38 +1,39 @@
-# LAB 2 - Closed loop control of mobile robots
+# LAB 3 - Localization
 
 ## Introduction
 
-Welcome to LAB 2 of the mobile robotics course! Here, you start shaping the overall structure of your mobile robot stack. Please check again the architecture provided in the README.md in the main branch and leave that open on your web browser. 
+Welcome to LAB 3 of the mobile robotics course! 
+In this lab, participants will gain experience with utilizing sensor data to perform localization via state estimation.
 
-In this lab, Participants will gain hands-on experience with mobile robots and acquire knowledge about their basic functionalities. By the end of this lab, participants will be able to:
-- Use the position data in a controller;
-- Control a mobile robot using a tunable PID controller.
-- Implement pure pursuit controller
+In this lab, you will implement the Extended Kalman Filter (EKF). 
+
+By the end of this lab, participants will be able to:
+- Use an Extended Kalman Filter to localize in real-time a mobile robot using sensor data.
+
+*Part 1* and *Part 2* are the same as in the previous labs they are here just for your convenience.
 
 
 #### The summary of what you should learn is as following:
+- You will learn how to derive the needed functions and matrices and perform localization using an EKF by using IMU and wheel encoders (as odom).
 
-1. You will learn how to properly read and log position sensors using ros 2.
-2. You will write a PID controller class that can properly calculate derivate, and integral of your position sensor.
-3. You use the PID controller to perform two trajectories with the mobile robot while logging the error. Then, a report should be prepared comparing the P and PID controller in agility, accuracy, and overshoot.
+**NOTE** this Lab builds on top of Lab 2. A complete solution to Lab 2 is provided within this lab so that even if you did not conclude Lab 2's implementation, you can still work on Lab 3. You are welcome to replace some of the code with your own development from Lab 2.
 
+Check ```rubrics.md``` for the grading scheme of this lab.
 
-### NOTES for pre-lab activities
-Given the limited time in the lab, it is highly recommended to go through this manual and start (or complete) your implementation before the lab date, by working on your personal setup (VMWare, remote desktop, lent laptop), and using simulation for testing when needed to verify that your codes are working before coming into the lab. For simulation, refer to `tbt3Simulation.md` in the `main` branch.
+## Pre-lab deliverable
+A first version of the completed code is to be submitted **24 hours before the group's lab section** (e.g. groups on the Wednesday section must submit by Tuesday at 3 PM), along with a list of doubts/questions to be solved during the in-person lab section (optional, if needed). The code does not have to be perfect but should be the best attempt and commented. The in-person lab is intended primarily for **testing, troubleshooting, and receiving TA support**, rather than implementing the code from scratch. 
 
+The following penalties apply:
+
+- **5 marks** for failing to submit the preliminary code by the deadline.
+- **10 additional marks** for failing to demonstrate and explain a complete working simulation, including **all in-lab components**, within the first 20 minutes of the scheduled lab session.
+
+Students are encouraged to post on Piazza and reach out to the TAs for support ahead (at least 48-72h ahead is recommended) of their scheduled lab session to successfully complete the pre-lab deliverables.
+
+## In the lab
 During the 3 hours in the lab, you want to utilize this time to test your code, work with the actual robot, get feedback from the TAs, and acquire the in-lab marks (check `rubrics.md` in the same branch).
 
 While in-lab, you are required to use the Desktop PCs and **NOT** your personal setup (VMWare, remote desktop, lent laptop). So, make sure that you have your modified files, either online or on a USB, with you to try it out in-lab. 
-
-### Pre-lab deliverable
-A first version of the completed code is to be submitted **24 hours before the group's lab section** (e.g. groups on the Wednesday section must submit by Tuesday at 3:30 PM), along with a list of doubts/questions to be solved during the in-person lab section (optional, if needed). The in-person lab is not meant for implementation but for testing and getting help from the TAs. 
-
-Failure to submit will result in a penalty of 5 marks on the lab report. The code does not have to be fully correct, but it should be (at least almost) complete and meaningful with appropriate comments.
-
-### Gain tuning
-In this lab, you will be tuning PID gains for the controller. Remember that gains tuned for the robot in simulation may not work for the real robot, so you do not need to achieve perfect tracking in simulation, just use it to check the working status of your code and whether the outputs are reasonable with just a few tuning.
-
-In the lab, on the physical robot, tune to achieve reasonable results, and to obtain sufficient plots to demonstrate your tuning process (see sections below and what is needed to report in Conclusion).
 
 ## Part 1 - connecting to the robot (no marks)
 Open the [connectToUWtb4s.md](https://github.com/aalghooneh/MTE544_student/blob/main/connectToUWtb4s.md) markdown file in the main branch, and follow along. Read and follow each step carefully.
@@ -79,92 +80,81 @@ ros2 service call /reset_pose irobot_create_msgs/srv/ResetPose
 
 ```
 
-## Part 3 - Read the position sensor, and log data (15 marks)
+## Part 3 - Implement the Extended Kalman Filter (EKF) (40 marks)
+For the implementation of the EKF, you will use the following sensor data to localize the robot:
+- IMU;
+- Odometry (as we do not have direct access to wheel encoders on TurtleBot4).
+  
+The structure of the code is basically the same as the one from LAB-2, but the localization is based on EKF instead of using raw data. See comment in ```decisions.py```.
 
-In this lab, you will implement a closed-loop controller to drive the robot by completing different parts of the code: the controller, the planner, and the localization. You can refer to the architecture to see how they are connected together.
+The estimation algorithm is implemented in ```kalman_filter.py``` and is used in ```localization.py```, which is then used by ```decisions.py```.
 
-- The controller is implemented using different control laws. You will start with a proportional controller (P) and then extend to proportional, derivative, integral (PID).
-- The planner generates the desired path/destination for the robot to follow, this can be as simple as a point planner, or a trajectory. At this stage, you will only implement predefined points/trajectories assuming the environment is perfect, we will see in LAB-4 how to implement optimal paths considering the environment (e.g. obstacles, walls).
-- The localization tells you where the robot is so that you can move the robot along the desired paths and read the data to feed back to your controller. At this stage, you will simply use the odometry to determine the position of the robot. In LAB-3 we will see how you can improve localization with sensor information (state estimation).
+The algorithm of the EKF implemented in ```kalman_filter.py``` is as follows (note that the notation is a bit different than the lecture slides):
 
-To start with, you need to read the position sensor and log the data so it can be used in the controller.
+```
+Prediction step:
+x = f(x, u) // This is the motion model function
+P = A*P*A' + Q // note that Q is the covariance matrix of the states
+```
 
-Follow the comments in ```utilities.py```, ```localization.py``` and ```decisions.py```.
+```
+Update step:
 
-## Part 4 - Write a P controller (20 marks)
-Start with a simple case and write a P controller only. Remember the control law of a P-controller, you need the proportional gain and the error of the system you are regulating, in this case, they are the linear and angular movement of the robot.
-To implement the controller, you will need to:
-- Compute both the linear and angular errors; follow the comments in ```utilities.py```;
-- Use the error to implement the control law of the P-controller; follow the comments in ```pid.py```;
-- Log your errors to evaluate the performance of your controller and to tune the gains; follow the comments in ```pid.py```;
-- Add saturation limits for the robot's linear and angular velocity; follow the comments in ```controller.py```;
+S = C*P*C' + R // note that R is the covariance matrix of the measurements
+K = P*C'*inv(S)
+Y_bar = z - h(x) // h is the measurement function
+x = x + K*Y_bar
+P = (1 - K*C)*P
+```
 
-  For real robot: Check out maximum linear and angular velocity from [Turtlebot 4 Specifications](https://turtlebot.github.io/turtlebot4-user-manual/overview/features.html#hardware-specifications).
+For the estimation, you can use:
+- As state vector ```x = [x,y,th,w,v,vdot]```
+- As measurements, data from odometry and IMU ```z = [v,w,ax,ay]```. 
 
-  For simulation: Check out maximum linear and angular velocity from [Turtlebot3 Burger Specifications](https://emanual.robotis.com/docs/en/platform/turtlebot3/features/)
-- Send the velocities to the robot to move the robot; follow the comments in ```decisions.py```.
+Derive the necessary equations and matrices for the process model and measurement model to complete the EKF implementation.
 
-Now, you can test your P-controller with the point planner before proceeding:
-- Make sure that the VPN terminal is still running, i.e., ```Tunnel is ready```, and that you can see the robot's topic list;
-- Remember to source your ```.bashrc``` file and set ```ROS_DOMAIN_ID```, in case you did not set up a permenant environment;
-- Undock your robot if needed, and use the teleop node to drive your robot to a free space;
-- Run: ```python3 decision.py --motion point``` and robot should move to the corresponding point specified in ```planner.py```.
+For this part:
+- Follow the comments in ```kalman_filter.py```to implement the EKF with all necessarily quantities and matrices.
+- Comment the code in ```kalman_filter.py```, explaining what the code does and what is the role of each matrix and function in the code; 
+- Follow the comments in ```localization.py``` to complete the implementation of the EKF for the robots using IMU and odom by deriving all necessary matrices and functions in ```initKalmanfilter``` and complete the steps in ```fusion_callback```.
 
-## Part 5 - Upgrade to PID (20 marks)
-Now that you have implemented a P-controller, proceed with the extension to include the derivative and integral components. You will need to:
-- Implement the error derivative and integral; follow the comments in ```pid.py```;
-- Implement the control laws for PD, PI, PID; follow the comments in ```pid.py```;
-- Add saturation limits (just like in part 4) for the robot's linear and angular velocity; follow the comments in ```controller.py```;
-- Test each controller, i.e., P, PD, PI, and PID, using the point planner; follow the comments in ```controller.py```;
-- Log your errors to evaluate the performance of your controllers (focus on the tuning for P and PID) and to plot them in your report, see the Conclusion section below on reporting;
-- Plot robot pose and errors using the ```plot_errors.py``` for each controller.
-- Tune your code based on the plots; follow the comments in ```decisions.py```.
+## Part 4 - Test the EKF implementation (20 marks)
+After you've finished the implementation of the EKF, you can proceed with testing your localization:
+- Spiral motion (use this motion to tune your EKF);
+- The point controller;
+If you want, in addition, you can also test with the other trajectories provided (or the ones you implemented in Lab-2 - this is optional).
 
-## Part 6 - Perform trajectories and log your error (20 marks)
-Implement more complex trajectories to test the performance of your controllers, follow the comments in ```planner.py```, and ```controller.py```. Cover these two trajectories, while logging the error. 
+In testing your code, make sure to try different values for the covariance matrices and log the data accordingly. How do they influence the estimation?
 
-* Parabola: $y = x^2$ for $x \in [0.0, 1.5]$
-* Sigmoid: $\sigma(x) = {2}/({1 + e^{-2x}}) - 1$ for $x \in [0.0, 2.5]$ 
+You can start with Q = 0.5 and R = 0.5 (multiplied by the correct sizes of Identity matrices to create the covariance matrices). Try to increase and decrease the value of Q without modifying R to observe the effect of modifying the state covariance. Then do the same for R, try to increase and then decrease the value of R without modifying Q to see the effect of modifying the measurement covariance. The range for the variations of Q and R should be in the range of decimals and units. 
 
-For real robots, you will need to tune your generated trajectory to make sure it fits into the classroom space.
-Choose one of the controllers among P, PI, PD, PID (you need to provide a reason) and tune your gains to obtain a good performance in terms of tracking:
-Run: ```python3 decision.py --motion trajectory```
+Perform at least two variations of Q and two variations of R for only spiral motion to put in your written report (a total of 4 combinations).
+Perform the final tuning with your point controller and put the results in your written report.
 
-Process the errors and visualize the plots to see how your controller is performing. Do a post-process plot with the logged data. You can use the ```plot_errors.py``` file (adapt and modify accordingly).
+Follow the comments in ```localization.py``` to complete the data logging, the headers are there.
 
-Try: You can also log your data with a bag file and save it so that you can use it after the lab is over. The bag file allows you to replay all the topics as if you ran the robot again. 
-To record a bag file (you can also check [here](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html)):
-- In a terminal, run ```ros2 bag record <topic_name>```, replace ```<topic_name>``` with the list of topics you want to record.
-- To stop recording, simply CTRL+C con the bag recording terminal.
-- To check the info of the bag you recorded ```ros2 bag info <bag_folder_name>```.
-- To play a bag file, in a terminal, run ```ros2 bag play <bag_folder_name>```.
-Note that when playing the bag file, it will play only for the duration for which you recorded it. If you want it to loop, you can add the option ```--loop``` to the bag play command.
+These data (robot_pose.csv) will be needed for the plots to be reported in the written report. Plot estimates vs measurements. You're free to adapt the plotting script for the required plots.
 
-*NOTE* do not save all the topics in your bag file, as it would be extremely large, select the ones that you actually need.
+**Show the results of your EKF for both the spiral and the point to a TA to score half of the marks for this part.**
 
-**IMPORTANT!! Before you leave, DELETE all of your codes, files, etc.**
 
-## Conclusions - Written report (25 marks)
-You can do this part in the lab (time allowing) or at home. Make sure you have the proper data saved.
+## Conclusions - Written report (40 marks)
+You can do this part in the lab (time allowing) or at home. **Make sure you have the proper data saved**.
 
 Please prepare a written report containing on the front page:
 - Names (Family Name, First Name) of all group members;
 - Student ID of all group members;
 - Station number and robot number.
 
-In a maximum of 3 pages (excluding the front page), report a comparison between the P-controller and the PID one. This report should only have two sections:
+In a maximum of 3 pages (excluding the front page), report the performance of the EKF. This report should contain the following:
 
-* Section 1 - the plot of the logged error for the trajectories. The plot should have, title, label name for axis, legends, different shapes/colors for each error, and grids.
-  * The plots you need to provide are as follows (for those in curly brackets, it is best to have them in one figure):
-    * The plot of P, PID controller for point controller, in which you have for all states for {e-t, edot-t}, and {x-t, y-t, th-t}, and {x-y}, {e-edot}.
-    * For your final chosen controller for part 6, provide the reason and the plot of the parabola and sigmoid trajectories {x-y} only, and if you had the plot of the linear and angular error that was recorded during the trajectory motion execution, then nice to provide that but it is not necessary.
-* Section 2 - A table comparing the P and PID controllers in agility, accuracy, and overshoot numerically **for the point controller only**. You should find the metrics for these three quantities from automatic control concepts/previous control courses. 
+* Provide your understanding of the algorithm provided for the EKF and report on your derivations of the matrices, including the process model and measurement model. 
+* Results of the EKF implementation, compare the measured and estimated. Perform this comparison considering different cases of the covariance matrices as specified in Part 4. The plots should have, title, label name for the axis, legends, different shapes/colors for each line, and grids. 
 
 ## Submission
 
-Submit the report and the code on Dropbox (LEARN) in the corresponding folder. Only one submission per group is needed:
-- **Report**: one single pdf, **do not** put the pdf inside the zip file, submit it as an independent file;
-- **Code**: make sure to have commented your code! Submit one single zip file with everything (including the csv files obtained from the data log).
-
+Submit the report on Crowdmark and the code on Dropbox (LEARN) in the corresponding folder. Only one submission per group on each platform is needed:
+- **Report**: one single pdf, do not put the pdf inside the zip file, submit it as an independent file to Crowdmark, remember to add all group members to a group before submitting;
+- **Code**: make sure to have commented your code! Submit one single zip file with everything (including the csv files obtained from the data log) to Dropbox on LEARN in the folder corresponding to your section.
 
 Good luck!
