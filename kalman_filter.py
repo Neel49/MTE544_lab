@@ -3,83 +3,83 @@
 import numpy as np
 
 
-
-# TODO Part 3: Comment the code explaining each part
 class kalman_filter:
     
-    # TODO Part 3: Initialize the covariances and the states    
+    # Initialize the covariances and the states    
     def __init__(self, P,Q,R, x, dt):
         
-        self.P=...
-        self.Q=...
-        self.R=...
-        self.x=...
-        self.dt = ...
-        
-    # TODO Part 3: Replace the matrices with Jacobians where needed        
+        self.P=P # state-estimate covariance
+        self.Q=Q # process noise
+        self.R=R # measurement noise
+        self.x=x # state
+        self.dt =dt
+
     def predict(self):
 
-        self.A = ...
-        self.C = ...
-        
+        # Jacobian of motion model
+        self.A = self.jacobian_A()
+
         self.motion_model()
+
+        # Jacobian of the measurement model
+        self.C = self.jacobian_H()
         
+        # Prediction advances the state and its uncertainty         
         self.P= np.dot( np.dot(self.A, self.P), self.A.T) + self.Q
 
-    # TODO Part 3: Calculate the Kalman gain and correct your estimates
+    # Calculate the Kalman gain and correct the estimates
     def update(self, z):
         
-        kalman_gain= ...
+        # The Kalman gain wieghs the measurement correction
+        kalman_gain= self.P @ self.C.T @ np.linalg.inv(self.C @ self.P @ self.C.T + self.R)
         
-        self.x= ...
+        # Correct predicted state and covariance
+        self.x= self.x + kalman_gain @ (z - self.measurement_model())
+        self.P= (np.eye(6)-kalman_gain @ self.C) @ self.P
         
-        self.P= ...
-        
-    
-    # TODO Part 3: Implement here the measurement model
+    # Predict measurements [v, w, ax, ay] from the state
+    # For planar body-frame motion, ax = vdot and ay = v*w
     def measurement_model(self):
         x, y, th, w, v, vdot = self.x
         return np.array([
-            ...,# v
-            ...,# w
-            ..., # ax
-            ..., # ay
+            v,# v
+            w,# w
+            vdot, # ax
+            v * w, # ay
         ])
-        
-    # TODO Part 3: Impelment the motion model (state-transition matrice)
+
+    # Integrate position, heading, and speed over dt.
+    # Assume angular velocity and forward acceleration stay constant.
     def motion_model(self):
         
         x, y, th, w, v, vdot = self.x
         dt = self.dt
         
         self.x = np.array([
-            x + ... * np.cos(th) * dt,
-            y + ... * np.sin(th) * dt,
+            x + v * np.cos(th) * dt,
+            y + v * np.sin(th) * dt,
             th + w * dt,
             w,
             v  + vdot*dt,
             vdot,
         ])
         
-
-
-    
+    # Jacobian of motion model
     def jacobian_A(self):
         x, y, th, w, v, vdot = self.x
         dt = self.dt
         
         return np.array([
             #x, y,               th, w,             v, vdot
-            [1, 0,              ..., 0,          ...,  0],
-            [0, 1,              ..., 0,          ...,  0],
+            [1, 0,              -v * np.sin(th) * dt, 0,          np.cos(th) * dt,  0],
+            [0, 1,              v * np.cos(th) * dt, 0,          np.sin(th) * dt,  0],
             [0, 0,                1, dt,           0,  0],
             [0, 0,                0, 1,            0,  0],
             [0, 0,                0, 0,            1,  dt],
             [0, 0,                0, 0,            0,  1 ]
         ])
     
-    
-    # TODO Part 3: Implement here the jacobian of the H matrix (measurements)    
+    # Jacobian of measurement model
     def jacobian_H(self):
         x, y, th, w, v, vdot=self.x
         return np.array([
@@ -87,9 +87,8 @@ class kalman_filter:
             [0,0,0  , 0, 1, 0], # v
             [0,0,0  , 1, 0, 0], # w
             [0,0,0  , 0, 0, 1], # ax
-            [0,0,0  , ..., ..., 0], # ay
+            [0,0,0  , v, w, 0], # ay
         ])
         
-    # TODO Part 3: return the states here    
     def get_states(self):
-        return ...
+        return self.x
