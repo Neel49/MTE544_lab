@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 import subprocess
+import shutil
 
 
 def upload_trial(folder):
@@ -9,22 +10,22 @@ def upload_trial(folder):
     git_directory = folder
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
 
-    def git(*args):
+    def git(*args, show=False):
         return subprocess.run(
             ["git", "-C", str(git_directory), *args], check=True,
-            capture_output=True, text=True, timeout=60, env=env,
-        ).stdout.strip()
+            capture_output=not show, text=True, timeout=120, env=env,
+        ).stdout or ""
 
     try:
-        root = Path(git("rev-parse", "--show-toplevel")).resolve()
+        root = Path(git("rev-parse", "--show-toplevel").strip()).resolve()
         git_directory = root
         relative = folder.relative_to(root).as_posix()
-        remote = git("remote", "get-url", "origin")
+        remote = git("remote", "get-url", "origin").strip()
         if not remote.rstrip("/").removesuffix(".git").endswith(
             ("github.com/Neel49/MTE544_lab", "github.com:Neel49/MTE544_lab")
         ):
             raise ValueError("origin must point to Neel49/MTE544_lab, not the course repo")
-        branch = git("branch", "--show-current")
+        branch = git("branch", "--show-current").strip()
         if branch != "LabThreeNirmit":
             raise ValueError("switch to LabThreeNirmit before uploading trials")
 
@@ -32,7 +33,19 @@ def upload_trial(folder):
         if git("diff", "--cached", "--name-only", "--", relative):
             # --only excludes unrelated files that were already staged.
             git("commit", "--only", "-m", "Record trial " + folder.name, "--", relative)
-        git("push", "origin", "HEAD:refs/heads/LabThreeNirmit")
+        print("Pushing trial to GitHub...", flush=True)
+        # Use the GitHub CLI login on this computer for HTTPS pushes.
+        # These options apply only to this push; no Git settings are changed.
+        auth = []
+        if remote.startswith("https://") and shutil.which("gh"):
+            logged_in = subprocess.run(
+                ["gh", "auth", "status", "--hostname", "github.com"],
+                capture_output=True, timeout=30, env=env,
+            ).returncode == 0
+            if logged_in:
+                auth = ["-c", "credential.helper=", "-c",
+                        "credential.helper=!gh auth git-credential"]
+        git(*auth, "push", "origin", "HEAD:refs/heads/LabThreeNirmit", show=True)
         print("Uploaded trial: " + folder.name)
         return True
     except (subprocess.SubprocessError, OSError, ValueError) as error:
