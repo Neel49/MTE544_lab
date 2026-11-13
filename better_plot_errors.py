@@ -65,23 +65,83 @@ def plot_file(filename, show):
     time = data["stamp"] - data["stamp"][0]
 
     if "imu_ax" in data:
-        # Localization timestamps are already logged in seconds.
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+        # A separate companion log preserves the original robotPose.csv format.
+        raw_file = filename.with_name(filename.stem + "_raw.csv")
+        if settings and (filename.parent / "results" / trial).is_dir():
+            raw_file = filename.parent / "results" / trial / raw_file.name
+        raw = read_data(raw_file) if raw_file.exists() else None
+        if raw is not None and (
+            len(raw["stamp"]) != len(data["stamp"])
+            or not np.array_equal(raw["stamp"], data["stamp"])
+        ):
+            print("Companion timestamps do not match; plotting without raw odometry.")
+            raw = None
 
-        ax = axes[0]
-        ax.plot(data["kf_x"], data["kf_y"], color="blue", label="EKF path")
-        ax.plot(data["kf_x"][0], data["kf_y"][0], "go", label="Start")
-        ax.plot(data["kf_x"][-1], data["kf_y"][-1], "rx", label="End")
+        fig, axes = plt.subplots(2, 3, figsize=(15, 9))
+        ax = axes[0, 0]
+        if raw is not None:
+            ax.plot(raw["odom_x"], raw["odom_y"], color="blue",
+                    label="Odometry (/odom)")
+        ax.plot(data["kf_x"], data["kf_y"], color="orange",
+                linestyle="--", label="EKF")
+        ax.plot(data["kf_x"][0], data["kf_y"][0], "go", label="EKF start")
+        ax.plot(data["kf_x"][-1], data["kf_y"][-1], "rx", label="EKF end")
+        if settings and settings["motion"] == "point":
+            goal = settings.get("goal")
+            if goal is not None:
+                ax.plot(goal[0], goal[1], "k*", markersize=10, label="Goal")
         ax.axis("equal")
-        format_axis(ax, "Estimated trajectory", "x (m)", "y (m)")
+        format_axis(ax, "Position estimates (not ground truth)", "x (m)", "y (m)")
 
-        for ax, direction in zip(axes[1:], ["x", "y"]):
+        for ax, field, title, unit in [
+            (axes[0, 1], "v", "Forward velocity", "v (m/s)"),
+            (axes[0, 2], "w", "Angular velocity", r"$\omega$ (rad/s)"),
+        ]:
+            if raw is not None:
+                ax.plot(time, raw["odom_" + field], color="blue",
+                        label="Odometry measurement")
+            key = "kf_vx" if field == "v" else "kf_w"
+            ax.plot(time, data[key], color="orange", linestyle="--", label="EKF")
+            format_axis(ax, title, "Time (s)", unit)
+
+        for ax, direction in zip(axes[1, :2], ["x", "y"]):
             ax.plot(time, data["imu_a" + direction], color="blue",
                     linewidth=1, label="IMU measurement")
             ax.plot(time, data["kf_a" + direction], color="orange",
-                    linestyle="--", linewidth=1.5, label="EKF estimate")
-            format_axis(ax, f"{direction} acceleration versus time",
-                        "Time (s)", rf"$a_{direction}$ (m/s²)")
+                    linestyle="--", linewidth=1.5, label="EKF")
+            format_axis(ax, f"{direction} acceleration", "Time (s)",
+                        rf"$a_{direction}$ (m/s²)")
+
+        ax = axes[1, 2]
+        if raw is not None:
+            # Wrap both headings to the same range; do not shift their origins.
+            for key, label, color, style in [
+                ("odom_theta", "Odometry (/odom)", "blue", "-"),
+                ("kf_theta", "EKF", "orange", "--"),
+            ]:
+                theta = (raw[key] + np.pi) % (2 * np.pi) - np.pi
+                ax.plot(time, theta, color=color, linestyle=style, label=label)
+            format_axis(ax, "Heading (wrapped to ±π)", "Time (s)", r"$\theta$ (rad)")
+        else:
+            ax.plot(time, data["kf_x"], color="blue", label="EKF x")
+            ax.plot(time, data["kf_y"], color="orange", linestyle="--", label="EKF y")
+            format_axis(ax, "Estimated position", "Time (s)", "Position (m)")
+            print("Older recording: raw odometry and heading were not logged.")
+        event_folder = filename.parent
+        if settings and (filename.parent / "results" / trial).is_dir():
+            event_folder = filename.parent / "results" / trial
+        timing_file = event_folder / "pick_timing.json"
+        if timing_file.exists():
+            event = json.loads(timing_file.read_text())
+            start = event["start_stamp_seconds"] - data["stamp"][0]
+            end = event.get("end_stamp_seconds", data["stamp"][-1]) - data["stamp"][0]
+            for ax in list(axes.flat)[1:]:
+                ax.axvspan(start, end, color="gray", alpha=0.2, label="Scripted pickup")
+                ax.legend()
+            index = np.argmin(np.abs(time - start))
+            axes[0, 0].plot(data["kf_x"][index], data["kf_y"][index],
+                            "ks", label="Pickup start")
+            axes[0, 0].legend()
         plot_name = "ekf"
     else:
         # The supplied PID logger uses nanoseconds.

@@ -30,6 +30,11 @@ class localization(Node):
         super().__init__("localizer")
 
         self.loc_logger=Logger( loggerName , loggerHeaders)
+        # Save odometry and EKF heading alongside the original pose log.
+        self.raw_logger = Logger(
+            loggerName.rsplit(".", 1)[0] + "_raw.csv",
+            ["odom_x", "odom_y", "odom_theta", "odom_v", "odom_w", "kf_theta", "stamp"],
+        )
         self.pose=None
         
         if type==rawSensors:
@@ -106,6 +111,16 @@ class localization(Node):
             Time.from_msg(odom_msg.header.stamp).nanoseconds / 1e9,
         ])
       
+        self.raw_logger.log_values([
+            odom_msg.pose.pose.position.x,
+            odom_msg.pose.pose.position.y,
+            euler_from_quaternion(odom_msg.pose.pose.orientation),
+            odom_msg.twist.twist.linear.x,
+            odom_msg.twist.twist.angular.z,
+            xhat[2],
+            Time.from_msg(odom_msg.header.stamp).nanoseconds / 1e9,
+        ])
+
     def odom_callback(self, pose_msg):
         
         self.pose=[ pose_msg.pose.pose.position.x,
