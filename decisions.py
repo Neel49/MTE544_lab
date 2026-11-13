@@ -3,7 +3,9 @@ import sys
 from utilities import euler_from_quaternion, calculate_angular_error, calculate_linear_error, start_trial
 from pid import PID_ctrl
 
-from rclpy import init, spin, spin_once
+from rclpy import init, spin, spin_once, shutdown
+from rclpy.signals import SignalHandlerOptions
+from trial_upload import upload_trial
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 
@@ -118,7 +120,8 @@ import argparse
 def main(args=None):
     
     
-    init()
+    # Keep ROS active long enough to send stop on Ctrl+C.
+    init(signal_handler_options=SignalHandlerOptions.NO)
     
     
     if args.motion == "point":
@@ -137,6 +140,22 @@ def main(args=None):
         spin(DM)
     except SystemExit:
         print(f"reached there successfully {DM.localizer.pose}")
+    except KeyboardInterrupt:
+        print("Trial stopped.")
+    finally:
+        # Stop the robot before any potentially slow Git/network operation.
+        try:
+            DM.publisher.publish(Twist())
+            import time
+            time.sleep(0.2)
+        finally:
+            try:
+                DM.localizer.destroy_node()
+                DM.destroy_node()
+                shutdown()
+            finally:
+                upload_trial(DM.trial_folder)
+
 
 
 
