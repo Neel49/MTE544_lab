@@ -35,7 +35,12 @@ def start_trial(motion, kf, controller, goal, reach_threshold):
     import json
     import shutil
 
-    # Short labels for scalar identity matrices; full matrices are saved below.
+    # Show each Q/R diagonal entry; complete matrices remain in settings.json.
+    def diagonal_label(matrix):
+        return "-".join(np.format_float_positional(value, trim="-")
+                        for value in np.diag(matrix))
+
+    # Keep the initial P label short.
     def matrix_label(matrix):
         diagonal = np.diag(matrix)
         if np.array_equal(matrix, np.eye(len(diagonal)) * diagonal[0]):
@@ -54,7 +59,7 @@ def start_trial(motion, kf, controller, goal, reach_threshold):
     started = datetime.now().astimezone()
     name = (
         f"T{trial_number}_{started:%Y%m%d%H%M%S}_{motion}"
-        f"_Q{matrix_label(kf.Q)}_R{matrix_label(kf.R)}"
+        f"_Q{diagonal_label(kf.Q)}_R{diagonal_label(kf.R)}"
         f"_P{matrix_label(kf.P)}"
     )
     folder = results / name
