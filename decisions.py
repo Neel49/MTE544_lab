@@ -43,10 +43,12 @@ class decision_maker(Node):
         publishing_period=1/rate
 
         # TODO PART 5 choose your threshold
-        self.reachThreshold=...
+        # Stop when the robot is within 5 cm of the final waypoint
+        self.reachThreshold = 0.05
 
         # TODO PART 5 your localization type
-        self.localizer=localization(...)
+        # Use odometry to get the robot's position and heading
+        self.localizer = localization(rawSensors)
 
 
         
@@ -57,7 +59,8 @@ class decision_maker(Node):
         
         elif motion_type==TRAJECTORY_PLANNER:
             # TODO PART 5 Put the gains that you concluded from lab 2
-            self.controller=trajectoryController(...)      
+            # Use the default gains provided in the trajectory controller.
+            self.controller=trajectoryController()     
             self.planner=planner(TRAJECTORY_PLANNER)
         
         else:

@@ -46,7 +46,8 @@ def return_path(current_node, maze):
 
     return path
 
-
+# Choose which distance estimate to use.
+HEURISTIC="euclidean"
 def search(maze, start, end):
 
     print("searching ....")
@@ -64,15 +65,18 @@ def search(maze, start, end):
 
     # TODO PART 4 Create start and end node with initized values for g, h and f
     # Use None as parent if not defined
-    start_node = Node(...)
-    start_node.g = ...     # cost from start Node
-    start_node.h = ...     # heuristic estimated cost to end Node
-    start_node.f = ...
 
-    end_node = Node(...)
-    end_node.g = ...       # set a large value if not defined
-    end_node.h = ...       # heuristic estimated cost to end Node
-    end_node.f = ...
+    # Set the start node. It has no parent because the path starts here.
+    start_node = Node(None, tuple(start))
+    start_node.g = 0    # cost from start Node
+    start_node.h = 0     # heuristic estimated cost to end Node
+    start_node.f = start_node.g + start_node.h
+
+    # Set the goal node. We haven't found a path to it yet.
+    end_node = Node(None, tuple(end))
+    end_node.g = float("inf")       # set a large value if not defined (we choose infinity)
+    end_node.h = 0       # heuristic estimated cost to end Node
+    end_node.f = end_node.g + end_node.h
 
     # Initialize both yet_to_visit and visited dictionary
     # in this dict we will put all node that are yet_to_visit for exploration.
@@ -92,14 +96,14 @@ def search(maze, start, end):
 
     # TODO PART 4 what squares do we search . serarch movement is left-right-top-bottom
     # (4 or 8 movements) from every positon
-    move = [[...],  # go up
-            [...],  # go left
-            [...],  # go down
-            [...],  # go right
-            [...],  # go up left
-            [...],  # go down left
-            [...],  # go up right
-            [...]]  # go down right
+
+    # Each pair tells us how we change our current cells x and y indices.
+    # We use four neighbors where we move one cell vertically or horizontally
+    move = [[0,-1],  # go up
+            [-1,0],  # go left
+            [0,1],  # go down
+            [1,0]]  # go right
+             
 
     """
         1) We first get the current node by comparing all f cost and selecting the lowest cost node for further expansion
@@ -119,7 +123,10 @@ def search(maze, start, end):
                 d) else move the child to yet_to_visit dict
     """
     # TODO PART 4 find maze has got how many rows and columns
-    no_rows, no_columns = ...
+
+    # Get the dimensions of the maze by counting the number of rows
+    # and then count the number of columns by counting the number of entries in one row.
+    no_rows, no_columns = len(maze), len(maze[0])
 
     # Loop until you find the end
 
@@ -157,10 +164,16 @@ def search(maze, start, end):
         for new_position in move:
 
             # TODO PART 4 Get node position
-            node_position = (...)
+            # Add the movement to the current position to get the coordinates of the neighbors
+            node_position =  ( 
+                current_node.position[0] + new_position[0],
+                current_node.position[1] + new_position[1]
+            )
 
             # TODO PART 4 Make sure within range (check if within maze boundary)
-            if (...):
+
+            # Skip this neighbor if the index is outside the grid.
+            if (node_position[0] <  0 or node_position[0] >= no_rows or node_position[1] < 0 or node_position[1] >= no_columns):
                 continue
 
             # Make sure walkable terrain
@@ -178,14 +191,27 @@ def search(maze, start, end):
         for child in children:
 
             # TODO PART 4 Child is on the visited dict (use get method to check if child is in visited dict, if not found then default value is False)
-            if ():
+            # Skip this child if we've already processed the position (i.e it's on closed list)
+            if child.position in visited_dict:
                 continue
 
             # TODO PART 4 Create the f, g, and h values
-            child.g = ...
-            # Heuristic costs calculated here, this is using eucledian distance
-            child.h = ...
 
+            # Each allowed move travels one cell, so add one to the cost so far
+            child.g = current_node.g + 1
+            # Heuristic costs calculated here, this is using eucledian distance
+            # Find the horizontal and vertical distances from this child to the goal.
+            dx = abs(end_node.position[0] - child.position[0])
+            dy = abs(end_node.position[1] - child.position[1])
+            
+            if HEURISTIC == "manhattan":
+                # Manhattan distance adds the horizontal and vertical distances.
+                child.h = dx + dy
+            elif HEURISTIC == "euclidean":
+                # Euclidean distance is the straight-line distance to the goal.
+                child.h = sqrt(dx**2 + dy**2)
+            
+            # Total estimated cost: f = g + h.
             child.f = child.g + child.h
 
             # Child is already in the yet_to_visit list and g cost is already lower
