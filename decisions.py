@@ -42,11 +42,9 @@ class decision_maker(Node):
         
         publishing_period=1/rate
 
-        # TODO PART 5 choose your threshold
-        self.reachThreshold=...
+        self.reachThreshold= 0.05 # 5 cm tolerance was used for lab 2 and lab 3
 
-        # TODO PART 5 your localization type
-        self.localizer=localization(...)
+        self.localizer=localization(rawSensors)
 
 
         
@@ -56,8 +54,8 @@ class decision_maker(Node):
 
         
         elif motion_type==TRAJECTORY_PLANNER:
-            # TODO PART 5 Put the gains that you concluded from lab 2
-            self.controller=trajectoryController(...)      
+            # Gains from Lab 2
+            self.controller=trajectoryController(klp=0.3, klv=0.2, kli=0.4,kap=0.5, kav=0.1, kai=0.3)      
             self.planner=planner(TRAJECTORY_PLANNER)
         
         else:

@@ -52,6 +52,7 @@ def search(maze, start, end):
     print("searching ....")
 
     maze = maze.T
+    use_manhattan: bool = False
 
     """
         Returns a list of tuples as a path from the given start to the given end in the given maze
@@ -62,17 +63,20 @@ def search(maze, start, end):
         :return:
     """
 
-    # TODO PART 4 Create start and end node with initized values for g, h and f
-    # Use None as parent if not defined
-    start_node = Node(...)
-    start_node.g = ...     # cost from start Node
-    start_node.h = ...     # heuristic estimated cost to end Node
-    start_node.f = ...
+    # Create start and end node with initized values for g, h and f
+    dx: float = abs(start[0]-end[0])
+    dy: float = abs(start[1]-end[1])
+    manhattan_distance: float = dx + dy
+    euclidean_distance: float = sqrt(dx**2 + dy**2)
+    start_node = Node(None, tuple(start))
+    start_node.g = 0     # cost from start Node
+    start_node.h = manhattan_distance if use_manhattan else euclidean_distance   # heuristic estimated cost to end Node
+    start_node.f = start_node.g + start_node.h
 
-    end_node = Node(...)
-    end_node.g = ...       # set a large value if not defined
-    end_node.h = ...       # heuristic estimated cost to end Node
-    end_node.f = ...
+    end_node = Node(None, tuple(end))
+    end_node.g = float('inf')       # set a large value if not defined
+    end_node.h = 0       # heuristic estimated cost to end Node
+    end_node.f = end_node.g + end_node.h
 
     # Initialize both yet_to_visit and visited dictionary
     # in this dict we will put all node that are yet_to_visit for exploration.
@@ -90,16 +94,16 @@ def search(maze, start, end):
     outer_iterations = 0
     max_iterations = (len(maze) // 2) ** 10
 
-    # TODO PART 4 what squares do we search . serarch movement is left-right-top-bottom
     # (4 or 8 movements) from every positon
-    move = [[...],  # go up
-            [...],  # go left
-            [...],  # go down
-            [...],  # go right
-            [...],  # go up left
-            [...],  # go down left
-            [...],  # go up right
-            [...]]  # go down right
+    move = [[0, -1],  # go up
+            [-1, 0],  # go left
+            [0, 1],  # go down
+            [1, 0],  # go right
+            [-1, -1],  # go up left
+            [-1, 1],  # go down left
+            [1, -1],  # go up right
+            [1, 1]]  # go down right
+    move = move[:4] # both heuristics work correctly with four-direction, unit-cost movement. Manhattan can overestimate distance if we allow diagonals costing sqrt(2).
 
     """
         1) We first get the current node by comparing all f cost and selecting the lowest cost node for further expansion
@@ -118,8 +122,8 @@ def search(maze, start, end):
                 c) if child in yet_to_visit dict then ignore it
                 d) else move the child to yet_to_visit dict
     """
-    # TODO PART 4 find maze has got how many rows and columns
-    no_rows, no_columns = ...
+    # Determine how many rows and columns maze has
+    no_rows, no_columns = np.shape(maze)
 
     # Loop until you find the end
 
@@ -156,11 +160,11 @@ def search(maze, start, end):
 
         for new_position in move:
 
-            # TODO PART 4 Get node position
-            node_position = (...)
+            # Get node position
+            node_position = (current_node.position[0]+new_position[0], current_node.position[1]+new_position[1])
 
-            # TODO PART 4 Make sure within range (check if within maze boundary)
-            if (...):
+            # Make sure within range (check if within maze boundary)
+            if (node_position[0] < 0 or node_position[0] >= no_rows or node_position[1] < 0 or node_position[1] >= no_columns):
                 continue
 
             # Make sure walkable terrain
@@ -177,14 +181,18 @@ def search(maze, start, end):
 
         for child in children:
 
-            # TODO PART 4 Child is on the visited dict (use get method to check if child is in visited dict, if not found then default value is False)
-            if ():
+            # Child is on the visited dict (use get method to check if child is in visited dict, if not found then default value is False)
+            if (visited_dict.get(child.position, False)):
                 continue
 
-            # TODO PART 4 Create the f, g, and h values
-            child.g = ...
-            # Heuristic costs calculated here, this is using eucledian distance
-            child.h = ...
+            child_dx = abs(child.position[0] - end_node.position[0])
+            child_dy = abs(child.position[1] - end_node.position[1])
+            child_manhattan_distance = child_dx + child_dy
+            child_euclidean_distance = sqrt(child_dx**2 + child_dy**2)
+            # Create the f, g, and h values
+            child.g = current_node.g + 1
+            # # Choose Manhattan or Euclidean distance
+            child.h = child_manhattan_distance if use_manhattan else child_euclidean_distance
 
             child.f = child.g + child.h
 
