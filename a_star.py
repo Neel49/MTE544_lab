@@ -52,6 +52,7 @@ def search(maze, start, end):
     print("searching ....")
 
     maze = maze.T
+    # use True for Manhattan distance and False for Euclidean distance
     use_manhattan: bool = False
 
     """
@@ -64,6 +65,9 @@ def search(maze, start, end):
     """
 
     # Create start and end node with initized values for g, h and f
+    # dx and dy are the absolute differences between the start and goal cell coordinates
+    # Manhattan distance is dx + dy
+    # Euclidean distance is the straight-line distance, sqrt(dx**2 + dy**2)
     dx: float = abs(start[0]-end[0])
     dy: float = abs(start[1]-end[1])
     manhattan_distance: float = dx + dy
@@ -185,11 +189,14 @@ def search(maze, start, end):
             if (visited_dict.get(child.position, False)):
                 continue
 
+            # calculate the coordinate differences from this child to the goal
+            # use these differences to calculate Manhattan and Euclidean distance
             child_dx = abs(child.position[0] - end_node.position[0])
             child_dy = abs(child.position[1] - end_node.position[1])
             child_manhattan_distance = child_dx + child_dy
             child_euclidean_distance = sqrt(child_dx**2 + child_dy**2)
             # Create the f, g, and h values
+            # each move goes to an adjacent cell, so add 1 to the path cost
             child.g = current_node.g + 1
             # # Choose Manhattan or Euclidean distance
             child.h = child_manhattan_distance if use_manhattan else child_euclidean_distance

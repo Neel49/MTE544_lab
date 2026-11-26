@@ -55,6 +55,8 @@ class decision_maker(Node):
         
         elif motion_type==TRAJECTORY_PLANNER:
             # Gains from Lab 2
+            # klp, klv and kli are the linear P, D and I gains
+            # kap, kav and kai are the angular P, D and I gains
             self.controller=trajectoryController(klp=0.3, klv=0.2, kli=0.4,kap=0.5, kav=0.1, kai=0.3)      
             self.planner=planner(TRAJECTORY_PLANNER)
         
