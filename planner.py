@@ -5,7 +5,7 @@ from a_star import *
 POINT_PLANNER=0; TRAJECTORY_PLANNER=1
 
 class planner:
-    def __init__(self, type_, mapName="room_2"): # here
+    def __init__(self, type_, mapName="room_1"): # here
 
         self.type=type_
         self.mapName=mapName
