@@ -10,7 +10,8 @@ from trial_logging import TrialRecorder
 from utilities import euler_from_quaternion, calculate_angular_error, calculate_linear_error
 from pid import PID_ctrl
 
-from rclpy import init, spin, spin_once, shutdown
+from rclpy import init, shutdown
+from rclpy.executors import SingleThreadedExecutor
 from rclpy.signals import SignalHandlerOptions
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
@@ -80,6 +81,7 @@ class decision_maker(Node):
         self.recordedPosePublisher = self.create_publisher(PoseStamped, '/recordedPose', 10)
         self.recordedPath = Path()
         self.last_path_stamp = None
+        self.last_control_stamp = None
 
         self.create_timer(publishing_period, self.timerCallback)
 
@@ -91,7 +93,6 @@ class decision_maker(Node):
 
     # each RViz goal starts a separate trial
     def designPathFor(self, msg: PoseStamped):
-        spin_once(self.localizer, timeout_sec=0.1)
         pose = self.localizer.getPose()
         if pose is None:
             print("waiting for odom msgs ....")
@@ -168,9 +169,6 @@ class decision_maker(Node):
         self.recordedPathPublisher.publish(self.recordedPath)
 
     def timerCallback(self):
-        previous_pose = self.localizer.getPose()
-        previous_stamp = previous_pose[3] if previous_pose is not None else None
-        spin_once(self.localizer, timeout_sec=0.1)
 
         if self.localizer.getPose() is  None:
             print("waiting for odom msgs ....")
@@ -178,8 +176,9 @@ class decision_maker(Node):
         
         
         # wait for a new sensor sample before updating the controller
-        if self.localizer.getPose()[3] == previous_stamp:
+        if self.localizer.getPose()[3] == self.last_control_stamp:
             return
+        self.last_control_stamp = self.localizer.getPose()[3]
         self.publishRecordedPose()
         vel_msg=Twist()
         
@@ -255,9 +254,13 @@ def main(args=None):
     motion = TRAJECTORY_PLANNER if args.motion == "trajectory" else POINT_PLANNER
     source = kalmanFilter if getattr(args, "localization", "odom") == "ekf" else rawSensors
     DM = decision_maker(Twist, "/cmd_vel", 10, motion_type=motion, localization_type=source)
+    # process both sensor streams continuously, independently of the control timer
+    executor = SingleThreadedExecutor()
+    executor.add_node(DM.localizer)
+    executor.add_node(DM)
     status = "interrupted"
     try:
-        spin(DM)
+        executor.spin()
     except KeyboardInterrupt:
         print("Stopped")
     except Exception:
@@ -269,6 +272,7 @@ def main(args=None):
             time.sleep(0.05)
         if DM.trial is not None:
             DM.trial.finish(status, DM.localizer.getPose())
+        executor.shutdown()
         DM.localizer.destroy_node()
         DM.destroy_node()
         shutdown()
