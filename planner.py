@@ -33,7 +33,7 @@ class planner:
         # the mean is located on the occupant grid. 
         if hasattr(self, "m_utilites"):
             self.m_utilites.destroy_node()
-        self.m_utilites=mapManipulator(filename_=self.mapName, laser_sig=0.1)
+        self.m_utilites=mapManipulator(filename_=self.mapName, laser_sig=0.5)
             
         self.costMap=self.m_utilites.make_likelihood_field()
         

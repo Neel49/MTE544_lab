@@ -1,0 +1,10 @@
+{
+  "trial": "T30_20261127154417_euclidean",
+  "status": "reached",
+  "elapsed_recorded_seconds": 29.101435904,
+  "pose_samples": 291,
+  "recorded_estimated_path_length_m": 2.1600331284700083,
+  "final_estimated_distance_to_requested_goal_m": 0.03332048942854514,
+  "planned_path_length_m": 2.4499999999999997,
+  "final_estimated_distance_to_final_waypoint_m": 0.0497903995130949
+}
