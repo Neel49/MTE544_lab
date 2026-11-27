@@ -1,5 +1,4 @@
 import sys
-import time
 from utilities import Logger
 
 from rclpy.time import Time
@@ -54,7 +53,7 @@ class localization(Node):
             print("We don't have this type for localization", sys.stderr)
             return            
     
-        self.timelast=time.time()
+        self.last_fusion_stamp_ns = None
     
     def initRawSensors(self):
         self.create_subscription(odom, "/odom", self.odom_callback, qos_profile=odom_qos)
@@ -89,9 +88,15 @@ class localization(Node):
             self.kalmanInitialized = True
 
         
-        dt = time.time() - self.timelast
-
-        self.timelast=time.time()
+        # integrate sensor time, not the time delayed messages arrive at the computer
+        stamp_ns = Time.from_msg(odom_msg.header.stamp).nanoseconds
+        if self.last_fusion_stamp_ns is None:
+            dt = 0.0
+        else:
+            dt = (stamp_ns - self.last_fusion_stamp_ns) / 1e9
+            if dt <= 0:
+                return
+        self.last_fusion_stamp_ns = stamp_ns
 
 
         z=np.array([odom_msg.twist.twist.linear.x,
