@@ -29,12 +29,20 @@ odom_qos=QoSProfile(reliability=2, durability=2, history=1, depth=10)
 
 class localization(Node):
     
-    def __init__(self, type, loggerName="robotPose.csv", loggerHeaders=["imu_ax", "imu_ay", "kf_ax", "kf_ay","kf_vx","kf_w","kf_x", "kf_y","stamp"]):
+    def __init__(self, type, loggerName="robotPose.csv", loggerHeaders=None):
 
         super().__init__("localizer")
         
         
-        self.loc_logger=Logger( loggerName , loggerHeaders)
+        headers = loggerHeaders or ["stamp", "x", "y", "theta", "v", "w",
+                                    "odom_x", "odom_y", "odom_theta", "odom_v", "odom_w",
+                                    "cmd_v", "cmd_w", "imu_ax", "imu_ay"]
+        self.loc_logger = Logger(loggerName, headers)
+        self.loc_logger.enabled = False
+        self.type = type
+        self.command = [0.0, 0.0]
+        self.latest_sample = None
+        self.last_logged_stamp = None
         self.pose=None
         
         if type==rawSensors:
@@ -101,6 +109,9 @@ class localization(Node):
                             normalize_angle(xhat[2]),
                             odom_msg.header.stamp])
         
+        self.record_sample(odom_msg, xhat[4], xhat[3],
+                           imu_msg.linear_acceleration.x, imu_msg.linear_acceleration.y)
+
     def odom_callback(self, pose_msg):
         
         self.pose=[ pose_msg.pose.pose.position.x,
@@ -108,7 +119,26 @@ class localization(Node):
                     euler_from_quaternion(pose_msg.pose.pose.orientation),
                     pose_msg.header.stamp]
         
-        #self.loc_logger.log_values([self.pose[0], self.pose[1], self.pose[2], Time.from_msg(self.pose[3]).nanoseconds])
+        self.record_sample(pose_msg, pose_msg.twist.twist.linear.x,
+                           pose_msg.twist.twist.angular.z)
+
+    def record_sample(self, odom_msg, velocity, yaw_rate, imu_ax="", imu_ay=""):
+        stamp = Time.from_msg(odom_msg.header.stamp).nanoseconds
+        raw = odom_msg.pose.pose
+        # save the selected pose, raw odometry and the most recent velocity command
+        self.latest_sample = [stamp, *[float(v) for v in self.pose[:3]],
+                              float(velocity), float(yaw_rate), raw.position.x, raw.position.y,
+                              euler_from_quaternion(raw.orientation),
+                              odom_msg.twist.twist.linear.x, odom_msg.twist.twist.angular.z,
+                              *self.command, imu_ax, imu_ay]
+        self.log_current_pose()
+
+    def log_current_pose(self):
+        if (self.loc_logger.enabled and self.latest_sample is not None
+                and self.latest_sample[0] != self.last_logged_stamp):
+            self.latest_sample[11:13] = self.command
+            self.loc_logger.log_values(self.latest_sample)
+            self.last_logged_stamp = self.latest_sample[0]
 
         
     def getPose(self):

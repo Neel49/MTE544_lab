@@ -1,0 +1,56 @@
+Lab 4 trial logging
+
+Run from the Lab4 folder
+
+python3 decisions.py --heuristic euclidean
+python3 decisions.py --heuristic manhattan
+
+Each RViz goal creates a new results/T<number>_<timestamp>_<heuristic> folder
+The current localization is odometry and the controller gains are unchanged
+--localization ekf selects the existing EKF, if you deliberately want to use it
+
+Each trial saves:
+  robotPose.csv: selected pose and velocity, raw odometry, commands, available IMU acceleration
+  linear.csv and angular.csv: the errors, derivatives and integrals computed by the controller
+  plannedPath.csv: the ordered A* waypoints in metres
+  settings.json: goal, start, heuristic, padding, gains, localization and completion status
+  map/: the exact PGM, YAML and computed cost map
+  code/: the Python code and RViz configuration used for the trial
+
+The four main CSVs contain the latest trial and match the archived copies
+Rows are written as the trial runs, including before Ctrl+C
+Ctrl+C sends zero velocity and marks an active trial interrupted
+Selecting another goal marks an unfinished trial replaced
+An unreachable goal is saved as no_path without terminating the controller
+A forced stop may leave the status running; CSV rows are written throughout the run
+PID history is retained between consecutive goals, as in the supplied controller
+
+All CSV stamp columns are ROS message timestamps in nanoseconds
+Settings record the timestamp at the start of the trial
+The plotter converts these to seconds from the same trial start
+The map and odometry frames are assumed aligned, as in the supplied map publisher
+Recorded positions are estimates, not independent ground truth
+
+Plot the latest trial:
+python3 better_plot_errors.py --files robotPose.csv
+
+Plot a saved trial (use Tab to complete its folder name):
+python3 better_plot_errors.py --files results/T1_<timestamp>_euclidean
+
+Compare two saved trials using the same map:
+python3 better_plot_errors.py --files results/T1_<timestamp>_euclidean results/T2_<timestamp>_manhattan --compare
+
+Plot all logged PID quantities for a trial:
+python3 better_plot_errors.py --files results/T1_<timestamp>_euclidean/linear.csv results/T1_<timestamp>_euclidean/angular.csv
+
+Add --no-show to save without opening windows
+The supplied plot_errors.py command now also opens the better plotter
+Plots go inside the trial folder, and latest-trial plots also go into the main plots folder
+The plotter reads archived settings and maps rather than current tuning values
+
+RViz:
+rviz2 -d pathPlanner.rviz
+Green shows the planned path, orange shows the recorded estimate and current pose
+The map publisher displays laser_sig=0.01
+The planner independently uses laser_sig=0.4 for obstacle clearance
+No automatic GitHub upload is enabled

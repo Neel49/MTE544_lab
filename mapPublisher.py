@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     rclpy.init()
 
-    map_ = mapManipulator()
+    map_ = mapManipulator(laser_sig=0.01)
 
     node = Node("mapPublisher")
 
@@ -42,8 +42,8 @@ if __name__ == "__main__":
     # Send the transform
     static_broadcaster.sendTransform(static_transform_stamped)
 
-    map_.make_likelihood_field()
 
+    map_.make_likelihood_field()
     occGrid = map_.to_message()
 
     node.create_timer(1.0, timerCallback)

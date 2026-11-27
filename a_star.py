@@ -47,13 +47,16 @@ def return_path(current_node, maze):
     return path
 
 
+USE_MANHATTAN = False
+
+
 def search(maze, start, end):
 
     print("searching ....")
 
     maze = maze.T
     # use True for Manhattan distance and False for Euclidean distance
-    use_manhattan: bool = False
+    use_manhattan: bool = USE_MANHATTAN
 
     """
         Returns a list of tuples as a path from the given start to the given end in the given maze

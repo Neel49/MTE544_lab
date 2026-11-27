@@ -1,12 +1,17 @@
 
 
 import sys
+import math
+import time
+import a_star
+from trial_logging import TrialRecorder
 
 
 from utilities import euler_from_quaternion, calculate_angular_error, calculate_linear_error
 from pid import PID_ctrl
 
-from rclpy import init, spin, spin_once
+from rclpy import init, spin, spin_once, shutdown
+from rclpy.signals import SignalHandlerOptions
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 
@@ -29,7 +34,7 @@ from geometry_msgs.msg import PoseStamped
 class decision_maker(Node):
     
     
-    def __init__(self, publisher_msg, publishing_topic, qos_publisher, rate=10, motion_type=POINT_PLANNER):
+    def __init__(self, publisher_msg, publishing_topic, qos_publisher, rate=10, motion_type=POINT_PLANNER, localization_type=rawSensors):
 
         super().__init__("decision_maker")
 
@@ -44,7 +49,7 @@ class decision_maker(Node):
 
         self.reachThreshold= 0.05 # 5 cm tolerance was used for lab 2 and lab 3
 
-        self.localizer=localization(rawSensors)
+        self.localizer=localization(localization_type)
 
 
         
@@ -65,6 +70,16 @@ class decision_maker(Node):
 
 
         self.goal = None
+        self.motion_type = motion_type
+        self.trial = None
+        self.loggers = [self.localizer.loc_logger, self.controller.PID_linear.logger,
+                        self.controller.PID_angular.logger]
+        for logger in self.loggers:
+            logger.enabled = False
+        self.recordedPathPublisher = self.create_publisher(Path, '/recordedPath', 10)
+        self.recordedPosePublisher = self.create_publisher(PoseStamped, '/recordedPose', 10)
+        self.recordedPath = Path()
+        self.last_path_stamp = None
 
         self.create_timer(publishing_period, self.timerCallback)
 
@@ -74,34 +89,104 @@ class decision_maker(Node):
 
 
 
-    # This is for the rviz2 interface
+    # each RViz goal starts a separate trial
     def designPathFor(self, msg: PoseStamped):
-        
-        spin_once(self.localizer)
-        
-        if self.localizer.getPose() is  None:
+        spin_once(self.localizer, timeout_sec=0.1)
+        pose = self.localizer.getPose()
+        if pose is None:
             print("waiting for odom msgs ....")
             return
-        
-        self.goal=self.planner.plan([self.localizer.getPose()[0], self.localizer.getPose()[1]],
-                                     [msg.pose.position.x, msg.pose.position.y])
+        self.stop_robot()
+        if self.trial is not None:
+            self.trial.finish("replaced", pose, "A new goal was selected")
+        self.goal = None
+        self.recordedPath = Path()
+        self.recordedPath.header.frame_id = "map"
+        self.recordedPathPublisher.publish(self.recordedPath)
+        self.last_path_stamp = None
+        requested = [msg.pose.position.x, msg.pose.position.y]
+        metadata = {
+            "motion": "trajectory" if self.motion_type == TRAJECTORY_PLANNER else "point",
+            "heuristic": "manhattan" if a_star.USE_MANHATTAN else "euclidean",
+            "localization": "odom" if self.localizer.type == rawSensors else "ekf",
+            "start_pose": [float(v) for v in pose[:3]],
+            "start_stamp_ns": pose[3].sec * 1000000000 + pose[3].nanosec,
+            "requested_goal": requested,
+            "reach_threshold_metres": self.reachThreshold,
+            "controller": {},
+            "command_line": list(sys.argv),
+        }
+        for axis, pid in [("linear", self.controller.PID_linear),
+                          ("angular", self.controller.PID_angular)]:
+            metadata["controller"][axis] = {"kp": pid.kp, "kd": pid.kv, "ki": pid.ki,
+                                           "history_length": pid.history_length}
+        if hasattr(self.localizer, "kf"):
+            kf = self.localizer.kf
+            metadata.update(Q=kf.Q.copy(), R=kf.R.copy(), P_at_start=kf.P.copy(),
+                            state_at_start=kf.x.copy())
+        self.trial = TrialRecorder(metadata, self.loggers, self.planner.mapName)
+        self.localizer.last_logged_stamp = None
+        self.localizer.log_current_pose()
+        try:
+            self.goal = self.planner.plan(pose[:2], requested)
+            path = self.goal if self.motion_type == TRAJECTORY_PLANNER else [self.goal]
+            self.trial.save_plan(path, getattr(self.planner, "m_utilites", None))
+        except Exception as error:
+            self.goal = None
+            self.trial.finish("planning_failed", pose, str(error))
+            self.publishPathOnRviz2([])
+            self.get_logger().error(f"Planning failed: {error}")
+            return
+        if self.goal is None or len(self.goal) == 0:
+            self.goal = None
+            self.trial.finish("no_path", pose, "No usable path to this goal")
+            self.publishPathOnRviz2([])
+            print("No usable path to this goal. Choose another goal or check the padding.")
+            return
+        self.publishPathOnRviz2(path)
 
-    
+    def stop_robot(self):
+        self.localizer.command = [0.0, 0.0]
+        self.publisher.publish(Twist())
+
+    def publishRecordedPose(self):
+        pose = self.localizer.getPose()
+        message = PoseStamped()
+        message.header.frame_id = "map"
+        message.header.stamp = pose[3]
+        message.pose.position.x = float(pose[0])
+        message.pose.position.y = float(pose[1])
+        message.pose.orientation.z = math.sin(float(pose[2]) / 2)
+        message.pose.orientation.w = math.cos(float(pose[2]) / 2)
+        self.recordedPosePublisher.publish(message)
+        stamp = pose[3].sec * 1000000000 + pose[3].nanosec
+        if self.trial is not None and self.trial.settings["status"] == "running":
+            if stamp != self.last_path_stamp:
+                self.recordedPath.poses.append(message)
+                self.last_path_stamp = stamp
+        self.recordedPath.header = message.header
+        self.recordedPathPublisher.publish(self.recordedPath)
+
     def timerCallback(self):
-        
-        spin_once(self.localizer)
+        previous_pose = self.localizer.getPose()
+        previous_stamp = previous_pose[3] if previous_pose is not None else None
+        spin_once(self.localizer, timeout_sec=0.1)
 
         if self.localizer.getPose() is  None:
             print("waiting for odom msgs ....")
             return
         
         
+        # wait for a new sensor sample before updating the controller
+        if self.localizer.getPose()[3] == previous_stamp:
+            return
+        self.publishRecordedPose()
         vel_msg=Twist()
         
         if self.goal is None:
             return
         
-        if type(self.goal) == list:
+        if self.motion_type == TRAJECTORY_PLANNER:
             reached_goal=True if calculate_linear_error(self.localizer.getPose(), self.goal[-1]) <self.reachThreshold else False
         else: 
             reached_goal=True if calculate_linear_error(self.localizer.getPose(), self.goal) <self.reachThreshold else False
@@ -111,7 +196,8 @@ class decision_maker(Node):
 
         if reached_goal:
             print("reached goal")
-            self.publisher.publish(vel_msg)
+            self.stop_robot()
+            self.trial.finish("reached", self.localizer.getPose())
             
             self.controller.PID_angular.logger.save_log()
             self.controller.PID_linear.logger.save_log()
@@ -130,8 +216,9 @@ class decision_maker(Node):
         vel_msg.linear.x=velocity
         vel_msg.angular.z=yaw_rate
         
+        self.localizer.command = [float(velocity), float(yaw_rate)]
         self.publisher.publish(vel_msg)
-        self.publishPathOnRviz2(self.goal)
+        self.publishPathOnRviz2(self.goal if self.motion_type == TRAJECTORY_PLANNER else [self.goal])
 
 
 
@@ -161,32 +248,35 @@ class decision_maker(Node):
 
 import argparse
 def main(args=None):
-    
-    
-    init()
-    
-    odom_qos=QoSProfile(reliability=2, durability=2, history=1, depth=10)
-    
-    if args.motion == "point":
-        DM=decision_maker(Twist, "/cmd_vel", 10, motion_type=POINT_PLANNER)
-    elif args.motion == "trajectory":
-        DM=decision_maker(Twist, "/cmd_vel", 10, motion_type=TRAJECTORY_PLANNER)
-    else:
-        print("invalid motion type", file=sys.stderr)
-
-
-
+    # keep ROS active long enough to send a stop command on Ctrl+C
+    init(signal_handler_options=SignalHandlerOptions.NO)
+    if getattr(args, "heuristic", None):
+        a_star.USE_MANHATTAN = args.heuristic == "manhattan"
+    motion = TRAJECTORY_PLANNER if args.motion == "trajectory" else POINT_PLANNER
+    source = kalmanFilter if getattr(args, "localization", "odom") == "ekf" else rawSensors
+    DM = decision_maker(Twist, "/cmd_vel", 10, motion_type=motion, localization_type=source)
+    status = "interrupted"
     try:
         spin(DM)
-    except SystemExit:
-        print(f"reached there successfully {DM.localizer.pose}")
+    except KeyboardInterrupt:
+        print("Stopped")
+    except Exception:
+        status = "error"
+        raise
+    finally:
+        for _ in range(3):
+            DM.stop_robot()
+            time.sleep(0.05)
+        if DM.trial is not None:
+            DM.trial.finish(status, DM.localizer.getPose())
+        DM.localizer.destroy_node()
+        DM.destroy_node()
+        shutdown()
 
 
-
-
-if __name__=="__main__":
-    argParser=argparse.ArgumentParser(description="point or trajectory") 
-    argParser.add_argument("--motion", type=str, default="trajectory")
-    args = argParser.parse_args()
-
-    main(args)
+if __name__ == "__main__":
+    argParser = argparse.ArgumentParser(description="point or trajectory")
+    argParser.add_argument("--motion", choices=["point", "trajectory"], default="trajectory")
+    argParser.add_argument("--heuristic", choices=["manhattan", "euclidean"], default=None)
+    argParser.add_argument("--localization", choices=["odom", "ekf"], default="odom")
+    main(argParser.parse_args())

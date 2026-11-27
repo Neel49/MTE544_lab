@@ -22,36 +22,7 @@ def normalize_angle(theta):
 
 
 
-class Logger:
-    def __init__(self, filename, headers=["e", "e_dot", "e_int", "stamp"]):
-        self.filename = filename
-
-        with open(self.filename, 'w') as file:
-            header_str=""
-
-            for header in headers:
-                header_str+=header
-                header_str+=", "
-            
-            header_str+="\n"
-            
-            file.write(header_str)
-
-
-    def log_values(self, values_list):
-
-        with open(self.filename, 'a') as file:
-            vals_str=""
-            for value in values_list:
-                vals_str+=f"{value}, "
-            
-            vals_str+="\n"
-            
-            file.write(vals_str)
-            
-
-    def save_log(self):
-        pass
+from trial_logging import Logger
 
 class FileReader:
     def __init__(self, filename):
