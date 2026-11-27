@@ -81,7 +81,7 @@ class localization(Node):
             
             # Q and R matrices from lab Three
             Q = 0.5 * np.eye(6)
-            R = np.diag([0.5, 0.5, 0.3, 0.3])
+            R = np.diag([0.5, 0.5, 0.5, 0.5])
             P = np.eye(6)
                         
             self.kf=kalman_filter(P,Q,R, x)

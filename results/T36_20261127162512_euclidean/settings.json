@@ -1,0 +1,69 @@
+{
+  "motion": "trajectory",
+  "heuristic": "euclidean",
+  "localization": "odom",
+  "start_pose": [
+    5.5067062021407764e-14,
+    -2.842170943040401e-14,
+    -2.8334385838253533e-10
+  ],
+  "start_stamp_ns": 1795814712107983507,
+  "requested_goal": [
+    5.269477844238281,
+    -0.7990024089813232
+  ],
+  "reach_threshold_metres": 0.05,
+  "controller": {
+    "linear": {
+      "kp": 0.2,
+      "kd": 0.2,
+      "ki": 0.2,
+      "history_length": 3
+    },
+    "angular": {
+      "kp": 0.4,
+      "kd": 0.2,
+      "ki": 0.2,
+      "history_length": 3
+    }
+  },
+  "command_line": [
+    "decisions.py",
+    "--motion",
+    "trajectory"
+  ],
+  "trial_number": 36,
+  "trial_name": "T36_20261127162512_euclidean",
+  "started_at": "2026-11-27T16:25:12.573732-05:00",
+  "status": "running",
+  "timestamp_unit": "nanoseconds",
+  "pose_frame": "odom",
+  "path_frame": "map",
+  "map_and_odom_assumed_aligned": true,
+  "csv_files": [
+    "robotPose.csv",
+    "linear.csv",
+    "angular.csv",
+    "plannedPath.csv"
+  ],
+  "git_commit": "143ff90abcdf8930d113b8efb68ff47f0aea29c5",
+  "map_pgm": "map/room.pgm",
+  "map_yaml": "map/room.yaml",
+  "map": {
+    "resolution": 0.05,
+    "origin": [
+      -6.42,
+      -4.29,
+      0.0
+    ],
+    "width": 391,
+    "height": 199,
+    "laser_sig": 0.5,
+    "blocked_above": 0.8
+  },
+  "final_waypoint": [
+    5.23,
+    -0.8399999999999999
+  ],
+  "planned_points": 152
+}

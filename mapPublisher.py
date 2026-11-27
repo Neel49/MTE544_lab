@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     rclpy.init()
 
-    map_ = mapManipulator(laser_sig=0.5)
+    map_ = mapManipulator(filename_= "room_2.yaml", laser_sig=0.25)
 
     node = Node("mapPublisher")
 
