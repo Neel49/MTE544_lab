@@ -33,7 +33,7 @@ class planner:
         # the mean is located on the occupant grid. 
         if hasattr(self, "m_utilites"):
             self.m_utilites.destroy_node()
-        self.m_utilites=mapManipulator(filename_=self.mapName, laser_sig=0.52)
+        self.m_utilites=mapManipulator(filename_=self.mapName, laser_sig=0.58)
             
         self.costMap=self.m_utilites.make_likelihood_field()
         
@@ -51,10 +51,22 @@ class planner:
         
         # Convert the cell pixels into the cartesian coordinates
         
-        # stop this attempt if either point is outside the usable map
+        # both endpoints must be inside the map
         width, height = self.costMap.shape[1], self.costMap.shape[0]
         for x, y in [startPose, endPose]:
-            if not (0 <= x < width and 0 <= y < height) or self.costMap[y, x] > 0.8:
+            if not (0 <= x < width and 0 <= y < height):
+                return None
+        if self.costMap[endPose[1], endPose[0]] > 0.8:
+            return None
+        if self.costMap[startPose[1], startPose[0]] > 0.8:
+            # rounding can put a clear starting pose into a padded cell
+            # allow that first cell only when the actual pose clears the same padding
+            if self.m_utilites.image_array[startPose[1], startPose[0]] < 10:
+                return None
+            obstacles = np.asarray(self.m_utilites.getAllObstacles())
+            distance = np.linalg.norm(obstacles - np.asarray(startPoseCart[:2], dtype=float), axis=1).min()
+            padding = self.m_utilites.laser_sig * np.sqrt(-2 * np.log(0.8))
+            if distance < padding:
                 return None
         cells = search(self.costMap, startPose, endPose)
         if cells is None or cells[-1] != endPose:
