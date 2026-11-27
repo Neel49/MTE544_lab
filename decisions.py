@@ -63,7 +63,7 @@ class decision_maker(Node):
             # Gains from Lab 2
             # klp, klv and kli are the linear P, D and I gains
             # kap, kav and kai are the angular P, D and I gains
-            self.controller=trajectoryController(klp=0.2, klv=0.2, kli=0.2,kap=0.2, kav=0.2, kai=0.2)      
+            self.controller=trajectoryController(klp=0.2, klv=0.2, kli=0.2,kap=0.3, kav=0.2, kai=0.2)      
             self.planner=planner(TRAJECTORY_PLANNER)
         
         else:

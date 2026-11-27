@@ -79,9 +79,9 @@ class localization(Node):
                         0])        
             
             # Q and R matrices from lab Three
-            Q = 0.5 * np.eye(6)
-            R = np.diag([0.5, 0.5, 0.5, 0.5])
-            P = np.eye(6)
+            Q = 1.0 * np.eye(6)
+            R = np.diag([0.25, 0.25, 0.25, 0.25])
+            P = 0.01*np.eye(6)
                         
             self.kf=kalman_filter(P,Q,R, x)
             
